@@ -1,21 +1,21 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.4.22 <0.9.0;
 
 import "./USDAO721.sol";
 
-interface IUSDAO {
+interface IUSDAO721 {
     function mintNFT(address, string memory) external;
 }
 
 contract NFTGiveaway {
-    IUSDAO USDAO721;
+    IUSDAO721 USDAO721;
     address immutable owner;
     mapping(address => string) winnersUri;
     mapping(address => bool) claimed;
 
     constructor(address _usdao721) {
         owner = msg.sender;
-        USDAO721 = IUSDAO(_usdao721);
+        USDAO721 = IUSDAO721(_usdao721);
     }
 
     function compareStrings(string memory a, string memory b)
