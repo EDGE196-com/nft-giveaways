@@ -30,7 +30,7 @@ contract("USDAO1155", accounts => {
     it('should be able to mint a new NFT', function () {
         return USDAO1155.deployed().then(function (instance) {
             ethInstance = instance;
-            return ethInstance.mintNFT(accounts[0], "123.json");
+            return ethInstance.mintNFT(accounts[0], "123.json", 0);
         }).then(function () {
             return ethInstance.balanceOf(accounts[0], 1);
         }).then(function (result) {
@@ -54,7 +54,7 @@ contract("NFTGiveaway", accounts => {
             addresses.push(accounts[1]);
             let uris = [];
             uris.push("456.json");
-            await expectRevert(ethInstance.setWinners(addresses, uris, { from: accounts[1] }), "only owner has access to this function!!!");
+            await expectRevert(ethInstance.setWinners(addresses, uris, { from: accounts[1] }), "only owner has the permission to access this function!!!");
         })
     })
 
