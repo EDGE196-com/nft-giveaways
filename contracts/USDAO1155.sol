@@ -10,7 +10,7 @@ contract USDAO1155 is ERC1155 {
     string public name;
     string public symbol;
     mapping(uint256 => string) private _tokenURI;
-
+    uint256 public ONE_USD; //in wei
     enum Category {
         COMMON,
         RAREORANGE,
@@ -23,12 +23,15 @@ contract USDAO1155 is ERC1155 {
         UNIQUEDIAMOND,
         UNIQUESILVER
     }
+    mapping(address => bool) public freeMintAllowed;
 
     mapping(uint256 => Category) public tokenCategory;
     // total supplies of different token categories
     mapping(Category => uint256) public categorySupply;
     // supply caps of different token categories
     mapping(Category => uint256) public categorySupplyCap;
+    //base price of each category
+    mapping(Category => uint256) public categoryBasePrice;
 
     modifier onlyOwner() {
         require(
@@ -38,7 +41,16 @@ contract USDAO1155 is ERC1155 {
         _;
     }
 
+    function changeFreeMintAllowed(address _address, bool _bool)
+        external
+        onlyOwner
+    {
+        freeMintAllowed[_address] = _bool;
+    }
+
     constructor() ERC1155("") {
+        freeMintAllowed[msg.sender] = true;
+        ONE_USD = 340000000000000;
         totalSupply = 0;
         owner = msg.sender;
         totalSupplyCap = 1001;
@@ -54,6 +66,12 @@ contract USDAO1155 is ERC1155 {
         categorySupplyCap[Category.UNIQUEGOLDEN] = 10;
         categorySupplyCap[Category.UNIQUEDIAMOND] = 20;
         categorySupplyCap[Category.UNIQUESILVER] = 15;
+        //setting base prices
+        categoryBasePrice[Category.COMMON] = ONE_USD * 2;
+        categoryBasePrice[Category.RAREORANGE] = ONE_USD * 75;
+        categoryBasePrice[Category.RAREPURPLE] = ONE_USD * 70;
+        categoryBasePrice[Category.RAREVIOLET] = ONE_USD * 65;
+        categoryBasePrice[Category.RAREYELLOW] = ONE_USD * 60;
     }
 
     function totalRareSupply() external view returns (uint256) {
@@ -118,18 +136,11 @@ contract USDAO1155 is ERC1155 {
         categorySupplyCap[_category] = _newSupplyCap;
     }
 
-    function mintNFT(
+    function _mintNFT(
         address minter,
         string memory _uri,
         Category _category
-    ) external {
-        //this will only mint single copy of an nft
-        require(totalSupply < totalSupplyCap, "cannot mint more NFTs!!!");
-        require(uint256(_category) < 10, "Invalid category provided!!!");
-        require(
-            categorySupply[_category] < categorySupplyCap[_category],
-            "cannot mint more NFTs in this category!!!"
-        );
+    ) internal {
         categorySupply[_category]++;
         totalSupply++;
         _setURI(_uri);
@@ -138,4 +149,44 @@ contract USDAO1155 is ERC1155 {
         _tokenURI[totalSupply] = _uri;
         tokenCategory[totalSupply] = _category;
     }
+
+    function mintNFT(
+        address minter,
+        string memory _uri,
+        Category _category
+    ) public payable {
+        require(totalSupply < totalSupplyCap, "cannot mint more NFTs!!!");
+        // require(uint256(_category) < 10 ,"Invalid category provided!!!");
+        require(
+            categorySupply[_category] < categorySupplyCap[_category],
+            "cannot mint more NFTs in this category!!!"
+        );
+        if (
+            _category == Category.UNIQUEOATA ||
+            _category == Category.UNIQUELEGENDARY ||
+            _category == Category.UNIQUEGOLDEN ||
+            _category == Category.UNIQUEDIAMOND ||
+            _category == Category.UNIQUESILVER
+        )
+            require(
+                msg.sender == owner,
+                "Only owner can mint the unique NFTs!!!"
+            );
+        uint256 cost = categoryBasePrice[_category];
+        if (freeMintAllowed[msg.sender] == true) cost = 0;
+        else if (_category != Category.COMMON)
+            cost = cost + categorySupply[_category] * 5 * ONE_USD;
+        require(msg.value == cost, "Insufficient funds!!!");
+        _mintNFT(minter, _uri, _category);
+    }
+
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function withdraw(uint256 _amount, address _reciever) external onlyOwner {
+        payable(_reciever).transfer(_amount);
+    }
+
+    receive() external payable {}
 }
